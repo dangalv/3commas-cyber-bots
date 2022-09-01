@@ -49,6 +49,7 @@ def load_config():
         "end-number": 200,
         "originalmaxdeals": 15,
         "mingalaxyscore": 0.0,
+        "minaltrankscore": 0,
         "maxaltrankscore": 1500,
         "allowmaxdealchange": False,
         "allowbotstopstart": False,
@@ -110,6 +111,14 @@ def upgrade_config(thelogger, theapi, cfg):
                 thelogger.info(
                     "Upgraded the configuration file (mingalaxyscore and bot stop-start)"
                 )
+                
+            if not cfg.has_option(cfgsection, "minaltrankscore"):
+                cfg.set(cfgsection, "minaltrankscore", "0")
+
+                with open(f"{datadir}/{program}.ini", "w+") as cfgfile:
+                    cfg.write(cfgfile)
+
+                thelogger.info("Upgraded the configuration file (minaltrankscore)")    
 
             if not cfg.has_option(cfgsection, "maxaltrankscore"):
                 cfg.set(cfgsection, "maxaltrankscore", "1500")
@@ -154,6 +163,7 @@ def botassist_pairs(cfg_section, thebot, botassistdata):
 
     # Get deal settings for this bot
     mingalaxyscore = float(config.get(cfg_section, "mingalaxyscore", fallback=0.0))
+    minaltrankscore = int(config.get(cfg_section, "minaltrankscore", fallback=0))
     maxaltrankscore = int(config.get(cfg_section, "maxaltrankscore", fallback=1500))
     maxvolatility = float(config.get(cfg_section, "maxvolatility", fallback=0.0))
     allowpairconversion = config.getboolean(cfg_section, "allowpairconversion", fallback=False)
@@ -199,6 +209,13 @@ def botassist_pairs(cfg_section, thebot, botassistdata):
                 % (pairdata["pair"], pairdata["galaxy-score"], str(mingalaxyscore))
             )
             continue
+        
+        if "alt-rank" in pairdata and int(pairdata["alt-rank"]) < minaltrankscore:
+            logger.debug(
+                "Pair '%s' with alt-rank %s below minimal altrankscore %s"
+                % (pairdata["pair"], pairdata["alt-rank"], str(minaltrankscore))
+            )
+            continue        
 
         if "alt-rank" in pairdata and int(pairdata["alt-rank"]) > maxaltrankscore:
             logger.debug(
